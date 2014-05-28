@@ -43,6 +43,7 @@ require 'factory_girl/decorator/class_key_hash'
 require 'factory_girl/decorator/disallows_duplicates_registry'
 require 'factory_girl/decorator/invocation_tracker'
 require 'factory_girl/decorator/new_constructor'
+require 'factory_girl/linter'
 require 'factory_girl/version'
 
 module FactoryGirl
@@ -54,30 +55,14 @@ module FactoryGirl
     @configuration = nil
   end
 
-  def self.lint
-    invalid_factories = FactoryGirl.factories.select do |factory|
-      built_factory = FactoryGirl.build(factory.name)
-
-      if built_factory.respond_to?(:valid?)
-        !built_factory.valid?
-      end
-    end
-
-    if invalid_factories.any?
-      error_message = <<-ERROR_MESSAGE.strip
-The following factories are invalid:
-
-#{invalid_factories.map {|factory| "* #{factory.name}" }.join("\n")}
-      ERROR_MESSAGE
-
-      raise InvalidFactoryError, error_message
-    end
-  end
-
   class << self
     delegate :factories, :sequences, :traits, :callbacks, :strategies, :callback_names,
       :to_create, :skip_create, :initialize_with, :constructor, :duplicate_attribute_assignment_from_initialize_with,
       :duplicate_attribute_assignment_from_initialize_with=, to: :configuration
+  end
+
+  def self.lint(options = {})
+    Linter.new(options).lint
   end
 
   def self.register_factory(factory)
